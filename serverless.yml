@@ -1,4 +1,4 @@
-service: read-invoice
+service: loc-invoice
 
 frameworkVersion: '3'
 
