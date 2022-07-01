@@ -1,0 +1,50 @@
+service: read-invoice
+
+frameworkVersion: '3'
+
+custom:
+  sqs: loc-invoice
+  dlq: loc-invoice-dlq
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: prd
+  region: sa-east-1
+  statements:
+    - Effect: Allow
+      Action:
+        - sqs:*
+        - dynamodb:*
+      Resource: "*"
+
+functions:
+  generateloc:
+    handler: handler.handler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - MainQueue
+              - Arn
+
+    deadLetter:
+      targetArn:
+        GetResourceArn: DeadLetterQueue
+
+resources:
+  Resources:
+        MainQueue:
+            Type: AWS::SQS::Queue
+            Properties:
+                QueueName: ${self:custom.sqs}
+                RedrivePolicy:
+                  deadLetterTargetArn:
+                    Fn::GetAtt:
+                      - "DeadLetterQueue"
+                      - "Arn"
+                  maxReceiveCount: 5
+        DeadLetterQueue:
+            Type: AWS::SQS::Queue
+            Properties:
+                QueueName: ${self:custom.dlq}
