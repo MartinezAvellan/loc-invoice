@@ -11,14 +11,19 @@ provider:
   runtime: python3.8
   stage: prd
   region: sa-east-1
+  deploymentBucket:
+    name: loc-invoice-deployment-bucket
   tags:
     Product: ${self:service}
-  statements:
-    - Effect: Allow
-      Action:
-        - sqs:*
-        - dynamodb:*
-      Resource: "*"
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:*
+            - dynamodb:*
+            - sqs:*
+          Resource: "*"
 
 functions:
   generateloc:
