@@ -55,3 +55,5 @@ resources:
             Type: AWS::SQS::Queue
             Properties:
                 QueueName: ${self:custom.dlq}
+plugins:
+  - serverless-python-requirements
