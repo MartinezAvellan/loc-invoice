@@ -1,0 +1,59 @@
+service: loc-invoice
+
+frameworkVersion: '3'
+
+custom:
+  sqs: loc-invoice
+  dlq: loc-invoice-dlq
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: prd
+  region: sa-east-1
+  deploymentBucket:
+    name: loc-invoice-deployment-bucket
+  tags:
+    Product: ${self:service}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:*
+            - dynamodb:*
+            - sqs:*
+          Resource: "*"
+
+functions:
+  generateloc:
+    handler: handler.handler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - MainQueue
+              - Arn
+
+    deadLetter:
+      targetArn:
+        GetResourceArn: DeadLetterQueue
+
+resources:
+  Resources:
+        MainQueue:
+            Type: AWS::SQS::Queue
+            Properties:
+                QueueName: ${self:custom.sqs}
+                RedrivePolicy:
+                  deadLetterTargetArn:
+                    Fn::GetAtt:
+                      - "DeadLetterQueue"
+                      - "Arn"
+                  maxReceiveCount: 5
+        DeadLetterQueue:
+            Type: AWS::SQS::Queue
+            Properties:
+                QueueName: ${self:custom.dlq}
+plugins:
+  - serverless-python-requirements
